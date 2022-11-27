@@ -6,6 +6,8 @@ const app = express()
 app.use(express.json())
 const dynamo = new Dynamo()
 
+setInterval(async () => await dynamo.deleteStaleUsers(), 15 * 1000)
+
 app.post('/heartbeat', async (req, res) => {
   try {
     const { id, username } = req.body
