@@ -19,7 +19,7 @@ export class Dynamo {
       TableName: 'OnlineUsers'
     }
     const users = await client.scan(params).catch((e) => console.error(e))
-    return console.log(users.Items.map((user) => unmarshall(user)))
+    return users.Items.map((user) => unmarshall(user))
   }
 
   async deleteUser(userId) {
