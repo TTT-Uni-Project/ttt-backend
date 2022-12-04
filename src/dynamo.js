@@ -1,6 +1,7 @@
 import { DynamoDB } from '@aws-sdk/client-dynamodb'
 const client = new DynamoDB({ endpoint: 'http://localhost:8000/' })
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb'
+import crypto from 'crypto'
 export class Dynamo {
   async addUserToOnlineList(id, username) {
     const params = {
@@ -47,5 +48,56 @@ export class Dynamo {
       }
     }
     await client.batchWriteItem(params).catch((e) => console.error('Error while deleting stale users', e))
+  }
+
+  async getPlayerById(id) {
+    const params = {
+      TableName: 'OnlineUsers',
+      Key: marshall({ id })
+    }
+    return await client
+      .getItem(params)
+      .then((data) => unmarshall(data.Item))
+      .catch((e) => console.error(e))
+  }
+
+  async createGame(players) {
+    const shuffledPlayers = players.sort(() => Math.random() - 0.5)
+
+    const [first, second] = shuffledPlayers
+
+    const playerOne = await this.getPlayerById(first)
+    playerOne.piece = 'X'
+    const playerTwo = await this.getPlayerById(second)
+    playerTwo.piece = 'O'
+
+    const params = {
+      TableName: 'Games',
+      Item: marshall({
+        id: crypto.randomUUID(),
+        players: [playerOne, playerTwo],
+        playerTurn: first,
+        winner: null,
+        state: 'STARTED',
+        board: [9, 9, 9, 9, 9, 9, 9, 9, 9]
+      })
+    }
+    await client.putItem(params)
+  }
+
+  async getStartedGames(userId) {
+    const params = {
+      TableName: 'Games'
+    }
+    const games = await client.scan(params).catch((e) => console.error(e))
+    const regularGames = games?.Items?.map((game) => unmarshall(game))
+
+    if (!regularGames) return null
+
+    const userGames = regularGames.filter((game) => game.players.map((p) => p.id).includes(userId))
+    const startedGames = userGames.filter((game) => game.state === 'STARTED')
+
+    if (startedGames.length === 0) return null
+    else return startedGames
   }
 }
