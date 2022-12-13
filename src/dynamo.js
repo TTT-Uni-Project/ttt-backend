@@ -100,4 +100,23 @@ export class Dynamo {
     if (startedGames.length === 0) return null
     else return startedGames
   }
+
+  async getGameById(id) {
+    const params = {
+      TableName: "Games",
+      Key: marshall({ id })
+    }
+    return await client
+      .getItem(params)
+      .then((data) => unmarshall(data.Item))
+      .catch((e) => console.error(e))
+  }
+
+  async updateGame(game) {
+    const params = {
+      TableName: "Games",
+      Item: marshall({ id: game.id, ...game })
+    }
+    await client.putItem(params).catch((e) => console.error(e))
+  }
 }
