@@ -1,6 +1,6 @@
 export const isInvalidMove = (game, playerId, position) => {
     const { board, playerTurn } = game
-    return board[position] !== EMPTY || playerTurn !== playerId ||  game.state === GAME_STATUS.FINISHED
+    return board[position] !== 9 || playerTurn !== playerId ||  game.state === "FINISHED"
   }
   
   const lines = [
@@ -22,7 +22,7 @@ export const isInvalidMove = (game, playerId, position) => {
       const [firstPlayer, secondPlayer] = players
       const [a, b, c] = line
   
-      if (board[a] !== EMPTY && board[a] === board[b] && board[a] === board[c]) {
+      if (board[a] !== 9 && board[a] === board[b] && board[a] === board[c]) {
         isFinished = true
         winner = firstPlayer.piece === board[a] ? firstPlayer.id : secondPlayer.id
         break
@@ -38,7 +38,7 @@ export const isInvalidMove = (game, playerId, position) => {
   
   const stalemate = (board) => {
     for (let i = 0; i < board.length; i++) {
-      if (board[i] === EMPTY) return false
+      if (board[i] === 9) return false
     }
     return true
   }
