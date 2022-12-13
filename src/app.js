@@ -1,12 +1,32 @@
 import express from 'express'
 import { Dynamo } from './dynamo.js'
+import { createServer } from 'http'
+import { Server } from 'socket.io'
 
 const port = 8086
 const app = express()
 app.use(express.json())
+const httpServer = createServer(app)
+const io = new Server(httpServer, {
+  cors: {
+    origin: '*'
+  }
+})
 const dynamo = new Dynamo()
 
 setInterval(async () => await dynamo.deleteStaleUsers(), 15 * 1000)
+
+io.of('/game').on('connection', (socket) => {
+  console.log(`Connected with client ${socket.id}`)
+  socket.on('JOIN_ROOM', async (roomId) => {
+    socket.join(roomId)
+    console.log(`Client ${socket.id} is joined to room ${roomId}!`)
+    io.of('/game').to(roomId).emit('GAME_STATE', 'game state')
+  })
+  socket.on('MOVE_PLAYED', async ({ gameId, playerId, move }) => {
+    io.of('/game').to(gameId).emit('GAME_STATE', 'game state')
+  })
+})
 
 app.post('/heartbeat', async (req, res) => {
   try {
@@ -69,5 +89,5 @@ app.get('/my-started-game', async (req, res) => {
   }
 })
 
-app.listen(port)
+httpServer.listen(port)
 console.log(`Tic-Tac-Toe backend started and listening on port ${port} 👈🥸`)
