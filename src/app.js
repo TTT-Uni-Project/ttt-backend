@@ -2,6 +2,7 @@ import express from 'express'
 import { Dynamo } from './dynamo.js'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
+import { isGameFinished, isInvalidMove } from './utils.js'
 
 const port = 8086
 const app = express()
@@ -24,7 +25,27 @@ io.of('/game').on('connection', (socket) => {
     io.of('/game').to(roomId).emit('GAME_STATE', 'game state')
   })
   socket.on('MOVE_PLAYED', async ({ gameId, playerId, move }) => {
-    io.of('/game').to(gameId).emit('GAME_STATE', 'game state')
+    const game = await dynamo.getGameById(gameId)
+    const { piece, position } = move
+
+    if (isInvalidMove(game, playerId, position)) {
+      console.log(`Player ${playerId} tried an illegal move in game ${gameId}!`)
+      return
+    }
+
+    game.board[position] = piece
+
+    const [isFinished, winner] = isGameFinished(game)
+
+    if (isFinished) {
+      game.state = "FINISHED"
+      game.winner = winner
+    }
+
+    const [otherPlayer] = game.players.filter((player) => player.id !== playerId)
+    game.playerTurn = otherPlayer.id
+    await dynamo.updateGame(game)
+    io.of('/game').to(gameId).emit('GAME_STATE', game)
   })
 })
 
