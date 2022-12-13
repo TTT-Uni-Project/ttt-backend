@@ -22,7 +22,9 @@ io.of('/game').on('connection', (socket) => {
   socket.on('JOIN_ROOM', async (roomId) => {
     socket.join(roomId)
     console.log(`Client ${socket.id} is joined to room ${roomId}!`)
-    io.of('/game').to(roomId).emit('GAME_STATE', await dynamo.getGameById(roomId))
+    io.of('/game')
+      .to(roomId)
+      .emit('GAME_STATE', await dynamo.getGameById(roomId))
   })
   socket.on('MOVE_PLAYED', async ({ gameId, playerId, move }) => {
     const game = await dynamo.getGameById(gameId)
@@ -38,7 +40,7 @@ io.of('/game').on('connection', (socket) => {
     const [isFinished, winner] = isGameFinished(game)
 
     if (isFinished) {
-      game.state = "FINISHED"
+      game.state = 'FINISHED'
       game.winner = winner
     }
 
